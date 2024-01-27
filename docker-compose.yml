@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+
+    #PHP 8 Service
+    webapp:
+        container_name: car-php-8
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+        volumes:
+            - ./:/var/www/html
+        networks:
+            - car-network
+
+    # NGINX Service
+    car-nginx:
+        image: nginx:alpine
+        container_name: car-nginx-alpine
+        restart: unless-stopped
+        tty: true
+        ports:
+            - "${APP_EXTERNAL_PORT:-80}:80"
+        volumes:
+            - ./:/var/www/html
+            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+        networks:
+            - car-network
+        
+    # DB - PostgreSQL 14
+    car-postgresql:
+        image: postgres:14
+        container_name: car-postgresql-14
+        ports:
+            - "${DB_EXTERNAL_PORT:-5432}:5432"
+        environment:
+            POSTGRES_DB: ${DB_DATABASE}
+            POSTGRES_USER: ${DB_USERNAME}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+        volumes:
+            - cardbdata:/var/lib/postgresql/data
+        networks:
+            - car-network
+
+    # Swagger
+    swagger:
+        image: swaggerapi/swagger-ui
+        ports:
+            - 81:8080
+        environment:
+            SWAGGER_JSON: /spec/swagger.json
+        volumes:
+            - ./docs/swagger.json:/spec/swagger.json
+        networks:
+            - car-network
+
+    car-node:
+        container_name: car-node-20
+        build:
+            context: .
+            dockerfile: ./Dockerfile.node
+        tty: true
+        ports:
+            - "${NODE_EXTERNAL_PORT:-3000}:3000"
+            - 5173:5173
+        volumes:
+            - ./:/var/www/html
+            - ./docker/node/docker-entrypoint.sh:/var/www/html/docker/node/docker-entrypoint.sh
+        networks:
+            - car-network
+
+#Docker Networks
+networks:
+    car-network:
+        driver: bridge
+
+#Volumes
+volumes:
+    cardbdata:
+        driver: local

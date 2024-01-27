@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /var/www/html
+
+# Clear workit
+RUN rm -rf /var/www/html/node_modules
+RUN rm -rf /var/www/html/yarn.lock
+
+# Copy package
+COPY ./package.json ./package.json
+
+# Expose public port
+EXPOSE 3000
+
+# Docker entrypoint
+ENTRYPOINT ["sh", "/var/www/html/docker/node/docker-entrypoint.sh"]
+
+CMD ["yarn", "dev"]
